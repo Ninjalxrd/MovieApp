@@ -1,4 +1,13 @@
-Movie App on Swift UIKit
+Movie App on Swift UIKit🎥🍿
+Technologies Stack:
+SDK version - Swift 5
+Minimum iOS target - iOS 15
+MVP(MVC) Architecture
+Only iPhone
+Only Portrait mode
+CoreData
+Concurency Async/await GCD
+Layout via code
 
 
 
