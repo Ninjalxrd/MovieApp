@@ -21,6 +21,7 @@ class MainViewController: UIViewController {
     private var currentPageForButton = 2
     private var allFilmsAreLoaded = false
     private var isLoadingNextPage = false
+    private var didLoadData: Bool = false
     private var filmsByCityCollectionViewHeight: NSLayoutConstraint?
     private var popularFilmsDataSource: UICollectionViewDiffableDataSource<Section, FilmShort>?
     private var filmsByCityDataSource: UICollectionViewDiffableDataSource<Section, FilmShort>?
@@ -31,14 +32,15 @@ class MainViewController: UIViewController {
         super.viewDidLoad()
         view = mainView
         mainView.cityCollectionView.dataSource = self
-        obtainCities()
         setupPopularFilmsDataSource()
+        setupFilmsByCityDataSource()
+        obtainCities()
         refreshMostPopularFilms()
         refreshFilmsByCity(citySlug: defaultSlug, page: 1)
-        setupFilmsByCityDataSource()
         setupCallbacks()
         setupNavigationAndTabBars()
     }
+
     
     private func setupNavigationAndTabBars() {
         navigationItem.title = "Что вы хотите посмотреть?"
@@ -55,20 +57,7 @@ class MainViewController: UIViewController {
         tabBarController?.tabBar.unselectedItemTintColor = Color.lightGray
     }
     
-    private func refreshMostPopularFilms() {
-        Task {
-            do {
-                let films = try await mainModel.obtainMostPopularFilms()
-                let filteredFilms = Array(films.shuffled().prefix(10))
-                updatePopularFilmsDataSource(with: filteredFilms, animate: true)
-                
-            } catch {
-                print("some error with obtaining most popular films: \(error)")
-            }
-        }
-    }
-    
-    func obtainCities() {
+    private func obtainCities() {
         Task {
             do {
                 cities = try await mainModel.obtainCity()
@@ -83,12 +72,42 @@ class MainViewController: UIViewController {
             }
         }
     }
+    private func refreshMostPopularFilms() {
+        
+        var popularFilms = dataManager.obtainMostPopularFilms()
+        popularFilms = removeDublicates(with: popularFilms)
+        
+        let filteredFilms = Array(popularFilms.prefix(10))
+        
+        if !filteredFilms.isEmpty {
+            didLoadData = true
+            updatePopularFilmsDataSource(with: filteredFilms, animate: true)
+            return
+        }
+        
+        Task {
+            do {
+                let films = try await mainModel.obtainMostPopularFilms()
+                let filteredFilms = Array(films.shuffled().prefix(10))
+                
+                for film in filteredFilms {
+                    dataManager.saveMostPopularFilms(film: film)
+                }
+                
+                updatePopularFilmsDataSource(with: filteredFilms, animate: true)
+                
+            } catch {
+                print("some error with obtaining most popular films: \(error)")
+            }
+        }
+    }
     
     private func refreshFilmsByCity(citySlug: String, page: Int) {
         Task {
             do {
                 let films = try await mainModel.obtainFilmsByCity(citySlug: citySlug, page: page)
-                updateFilmsByCityDataSource(with: films, animate: false)
+                updateFilmsByCityDataSource(with: films, animate: true)
+                currentPage = 1
             } catch {
                 print("some error with obtaining films by city: \(error)")
             }
@@ -99,17 +118,32 @@ class MainViewController: UIViewController {
         popularFilmsDataSource = UICollectionViewDiffableDataSource(collectionView: mainView.popularFilmsCollectionView, cellProvider: { collectionView, indexPath, film in
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: PopularFilmsCollectionViewCell.identifier, for: indexPath) as! PopularFilmsCollectionViewCell
             let numberImage = self.numberImages[indexPath.row] ?? UIImage()
-            cell.configurePopularFilmsCell(with: film, numberImage: numberImage)
+            cell.configurePopularFilmsCell(with: film, numberImage: numberImage, didLoadData: self.didLoadData)
             return cell
         })
     }
     
     private func updatePopularFilmsDataSource(with films: [FilmShort], animate: Bool) {
+        
         var snapshot = NSDiffableDataSourceSnapshot<Section, FilmShort>()
         snapshot.appendSections([.main])
         snapshot.appendItems(films)
-        popularFilmsDataSource?.apply(snapshot, animatingDifferences: true)
+        popularFilmsDataSource?.apply(snapshot, animatingDifferences: animate)
         mainView.showMoreButton.isHidden = false
+
+    }
+    
+    private func removeDublicates(with films: [FilmShort]) -> [FilmShort] {
+        var uniqueFilms = [FilmShort]()
+        var seenFilmIDs = Set<Int>()
+        
+        for film in films {
+            if !seenFilmIDs.contains(film.film_id) {
+                uniqueFilms.append(film)
+                seenFilmIDs.insert(film.film_id)
+            }
+        }
+        return uniqueFilms
     }
     
     private func setupFilmsByCityDataSource() {
@@ -124,7 +158,7 @@ class MainViewController: UIViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Section, FilmShort>()
         snapshot.appendSections([.main])
         snapshot.appendItems(films)
-        filmsByCityDataSource?.apply(snapshot, animatingDifferences: false)
+        filmsByCityDataSource?.apply(snapshot, animatingDifferences: true)
         
         UIView.animate(withDuration: 0.3) {
             self.calculateHeightOfCollectionView()
@@ -167,6 +201,7 @@ class MainViewController: UIViewController {
             }
             isLoadingNextPage = false
         }
+        
     }
 
     private func setupCallbacks() {

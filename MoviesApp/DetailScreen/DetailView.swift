@@ -8,6 +8,7 @@ class DetailView: UIView {
     private final let posterWidth: CGFloat = 120
     var onTrailerButtonTap: (() -> Void)?
     var onSaveButtonTap: (() -> Void)?
+    var onRightSwipe: (() -> Void)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -17,6 +18,17 @@ class DetailView: UIView {
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    private lazy var rightSwipeGestureRecognizer: UISwipeGestureRecognizer = {
+        let swipeRecognizer = UISwipeGestureRecognizer(target: self, action: #selector(rightSwipeAction))
+        swipeRecognizer.direction = .right
+        swipeRecognizer.delegate = self
+        return swipeRecognizer
+    }()
+    
+    @objc func rightSwipeAction() {
+        self.onRightSwipe?()
     }
 
     private lazy var scrollView: UIScrollView = {
@@ -158,12 +170,15 @@ class DetailView: UIView {
     lazy var favoriteButton: UIButton = {
         let button = UIButton(type: .custom, primaryAction: onSaveButtonTapAction)
         button.setImage(UIImage(systemName:"bookmark"), for: .normal)
+        button.isEnabled = false
         return button
     }()
     
     private lazy var onSaveButtonTapAction = UIAction { [weak self] _ in
         guard let self else { return }
         self.onSaveButtonTap?()
+        let generator = UIImpactFeedbackGenerator(style: .heavy)
+        generator.impactOccurred()
     }
     
     private lazy var trailerAction = UIAction { [weak self] _ in
@@ -220,6 +235,7 @@ class DetailView: UIView {
     
     private func setupUI() {
         addSubview(scrollView)
+        addGestureRecognizer(rightSwipeGestureRecognizer)
         scrollView.addSubview(imagesCollectionView)
         scrollView.addSubview(posterImageView)
         scrollView.addSubview(titleLabel)
@@ -291,6 +307,19 @@ class DetailView: UIView {
 extension DetailView: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         return CGSize(width: collectionView.bounds.width, height: collectionView.bounds.height)
+    }
+}
+
+extension DetailView: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
+    }
+    
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        if let touchedView = touch.view, touchedView.isDescendant(of: imagesCollectionView) {
+            return false
+        }
+        return true
     }
 }
 

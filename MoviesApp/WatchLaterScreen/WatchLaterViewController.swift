@@ -23,7 +23,7 @@ class WatchLaterViewController: UIViewController {
         setupDataSource()
         setupCallbacks()
     }
-    
+
     private func setupFetchedResultController() {
         fetchedResultController = CoreDataManager.shared.createFetchResultsController()
         fetchedResultController.delegate = self
@@ -39,6 +39,7 @@ class WatchLaterViewController: UIViewController {
             guard let self else { return }
             self.showFilmDetail(at: indexPath, tableView: tableView)
         }
+
     }
     
     private func showFilmDetail(at indexPath: IndexPath, tableView: UITableView) {
@@ -74,7 +75,6 @@ class WatchLaterViewController: UIViewController {
 
 extension WatchLaterViewController: NSFetchedResultsControllerDelegate {
     func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        print("controllerDidChangeContent")
         updateDataSourceWithCachedData()
     }
 }

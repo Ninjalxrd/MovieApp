@@ -22,10 +22,10 @@ class DetailViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view = detailView
-        refreshFilmDetails()
         setupFilmImagesSource()
         setupNavigationBar()
         setupCallbacks()
+        refreshFilmDetails()
         checkIfFavorite()
     }
     
@@ -56,6 +56,10 @@ class DetailViewController: UIViewController {
                 let film = try await detailModel.obtainFilmDetails(film_id: film_id)
                 self.film = film
                 updateView(with: film)
+                
+                DispatchQueue.main.async {
+                    self.detailView.favoriteButton.isEnabled = true
+                }
             } catch {
                 print("some error with obtaining film details \(error)")
             }
@@ -159,6 +163,10 @@ class DetailViewController: UIViewController {
                     self.dataManager.deleteFilm(filmId: filmId)
                 }
             }
+        }
+        
+        detailView.onRightSwipe = { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
         }
     }
 }

@@ -17,8 +17,7 @@ class MainView: UIView {
     var onCitySelected: ((IndexPath, UICollectionView) -> Void)?
     var onItemSelected: ((IndexPath, UICollectionView) -> Void)?
     var onSearchButtonTapped: ((String) -> Void)?
-    var onShowMoreButtonTapped: (() -> Void)?
-    
+    var onShowMoreButtonTapped: (() -> Void)?    
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -29,10 +28,13 @@ class MainView: UIView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
     
     private lazy var cancelAction = UIAction { [weak self] _ in
         guard let self else { return }
         self.endEditing(true)
+        let generator = UIImpactFeedbackGenerator(style: .heavy)
+        generator.impactOccurred()
     }
     
     private func addCancelButtonToKeyboard(textField: UITextField) {
@@ -61,6 +63,8 @@ class MainView: UIView {
     private lazy var showMoreAction = UIAction { [weak self] _ in
         guard let self else { return }
         self.onShowMoreButtonTapped?()
+        let generator = UIImpactFeedbackGenerator(style: .heavy)
+        generator.impactOccurred()
     }
     
     lazy var searchBar: UISearchBar = {
@@ -233,6 +237,7 @@ extension MainView: UICollectionViewDelegateFlowLayout {
 extension MainView: UICollectionViewDelegate {
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
         if let cell = collectionView.cellForItem(at: indexPath) {
             UIView.animate(withDuration: 0.2,
                            animations: {
@@ -246,9 +251,11 @@ extension MainView: UICollectionViewDelegate {
         }
         if collectionView == filmsByCityCollectionView || collectionView == popularFilmsCollectionView {
             onItemSelected?(indexPath, collectionView)
+            generator.impactOccurred()
         } else {
             onCitySelected?(indexPath, collectionView)
             updateIndicatorPosition(for: indexPath)
+            generator.impactOccurred()
         }
     }
     
@@ -276,6 +283,8 @@ extension MainView: UISearchBarDelegate {
     
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         guard let searchText = searchBar.text else { return }
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
         onSearchButtonTapped?(searchText)
     }
 }

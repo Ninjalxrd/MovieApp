@@ -19,7 +19,9 @@ class CoreDataManager {
     var backgroundContext: NSManagedObjectContext {
         persistentContainer.newBackgroundContext()
     }
-    private init() {}
+    private init() {
+        viewContext.automaticallyMergesChangesFromParent = true
+    }
     
     lazy var persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "MoviesApp")
@@ -54,54 +56,66 @@ class CoreDataManager {
         let resultController = NSFetchedResultsController(fetchRequest: filmFetchRequest, managedObjectContext: viewContext, sectionNameKeyPath: nil, cacheName: nil)
         return resultController
     }
-    
-    func obtainSavedFilms(for citySlug: String) -> [FilmShort] {
-        let filmRequest = Film.fetchRequest()
-        let predicate = NSPredicate(format: "citySlug == %@", citySlug)
-        filmRequest.predicate = predicate
-        let sortDescriptor = NSSortDescriptor(key: "film_id", ascending: false)
-        filmRequest.sortDescriptors = [sortDescriptor]
-        
-        do {
-            let filmEntities = try viewContext.fetch(filmRequest)
-            let films: [FilmShort] = filmEntities.map {
-                filmEntity in
-                FilmShort(film_id: Int(filmEntity.film_id),
-                          title: filmEntity.title ?? "",
-                          poster: MoviePoster(image: filmEntity.poster?.base64EncodedString() ?? ""))
-            }
-            return films
-        } catch {
-            print("error with obtaining data \(error)")
-            return []
-        }
-    }
-    
-    func saveMainScreenFilms(film: FilmShort, for citySlug: String) {
+ 
+    func saveMostPopularFilms(film: FilmShort) {
         let backgroundContext = backgroundContext
         let group = DispatchGroup()
         backgroundContext.perform {
-            let filmEntity = Film(context: backgroundContext)
-            filmEntity.title = film.title
-            filmEntity.film_id = Int32(film.film_id)
-            filmEntity.citySlug = citySlug
             
-            group.enter()
-            Task {
-                let image = try await ImageService.downloadImage(by: film.poster.image)
-                let imageData = image?.pngData()
-                filmEntity.poster = imageData
-                group.leave()
-            }
-            group.notify(queue: .main) {
-                do {
-                    try backgroundContext.save()
-                } catch {
-                    print("error to saving to background context \(error)")
+            let fetchRequest = PopularFilms.fetchRequest()
+            let predicate = NSPredicate(format: "film_id == %d", film.film_id)
+            fetchRequest.predicate = predicate
+            
+            do {
+                let existingFilms = try backgroundContext.fetch(fetchRequest)
+                if existingFilms.isEmpty {
+                    let filmEntity = PopularFilms(context: backgroundContext)
+                    filmEntity.title = film.title
+                    filmEntity.film_id = Int32(film.film_id)
+                    
+                    group.enter()
+                    Task {
+                        let image = try await ImageService.downloadImage(by: film.poster.image)
+                        let imageData = image?.pngData()
+                        filmEntity.poster = imageData
+                        group.leave()
+                    }
+                    group.notify(queue: .main) {
+                        do {
+                            try backgroundContext.save()
+                        } catch {
+                            print("some error with saving top 10 films to core data \(error)")
+                        }
+                    }
                 }
+            } catch {
+                print("Error checking for existing film: \(error)")
             }
         }
     }
+
+    func obtainMostPopularFilms() -> [FilmShort] {
+        
+        let filmRequest = PopularFilms.fetchRequest()
+        let sortDescriptor = NSSortDescriptor(key: "film_id", ascending: true)
+        filmRequest.sortDescriptors = [sortDescriptor]
+        
+        do {
+            let films = try viewContext.fetch(filmRequest)
+            let obtainedFilms: [FilmShort] = films.map {
+                filmEntity in
+                FilmShort(film_id: Int(filmEntity.film_id),
+                          title: filmEntity.title,
+                          poster: MoviePoster(image: filmEntity.poster?.base64EncodedString() ?? ""))
+            }
+            return obtainedFilms
+        } catch {
+            print("some error with obtaining top 10 films \(error)")
+            return []
+        }
+        
+    }
+
     
     func saveFilm(film: FilmDetail) {
         let backgroundContext = backgroundContext

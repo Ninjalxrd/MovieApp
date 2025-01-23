@@ -56,14 +56,24 @@ class PopularFilmsCollectionViewCell: UICollectionViewCell {
         posterImageView.image = nil
     }
     
-    func configurePopularFilmsCell(with film: FilmShort, numberImage: UIImage) {
+    func configurePopularFilmsCell(with film: FilmShort, numberImage: UIImage, didLoadData: Bool) {
         numberImageView.image = numberImage
         
         activityIndicator.startAnimating()
-        Task {
-            let image = try? await ImageService.downloadImage(by: film.poster.image)
-            posterImageView.image = image
-            activityIndicator.stopAnimating()
+        if didLoadData {
+            Task {
+                if let data = Data(base64Encoded: film.poster.image),
+                   let image = UIImage(data: data) {
+                    posterImageView.image = image
+                    activityIndicator.stopAnimating()
+                }
+            }
+        } else {
+            Task {
+                let image = try? await ImageService.downloadImage(by: film.poster.image)
+                posterImageView.image = image
+                activityIndicator.stopAnimating()
+            }
         }
     }
     

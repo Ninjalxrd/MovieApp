@@ -11,10 +11,9 @@
         <attribute name="title" attributeType="String"/>
         <attribute name="year" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
-    <entity name="FilmByCity" representedClassName="FilmByCity" syncable="YES" codeGenerationType="class">
-        <attribute name="citySlug" optional="YES" attributeType="String"/>
-        <attribute name="film_id" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+    <entity name="PopularFilms" representedClassName="PopularFilms" syncable="YES">
+        <attribute name="film_id" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="poster" optional="YES" attributeType="Binary"/>
-        <attribute name="title" optional="YES" attributeType="String"/>
+        <attribute name="title" attributeType="String"/>
     </entity>
 </model>

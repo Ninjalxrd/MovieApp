@@ -48,6 +48,7 @@ class WatchLaterView: UIView {
 extension WatchLaterView: UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
         if let cell = tableView.cellForRow(at: indexPath) {
             UIView.animate(withDuration: 0.2,
                            animations: {
@@ -59,6 +60,13 @@ extension WatchLaterView: UITableViewDelegate {
                 }
             })
             onItemSelected?(indexPath, tableView)
+            generator.impactOccurred()
         }
+    }
+}
+
+extension WatchLaterView: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
     }
 }
