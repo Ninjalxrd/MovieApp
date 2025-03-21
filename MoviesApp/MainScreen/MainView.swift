@@ -78,7 +78,7 @@ class MainView: UIView {
         search.setImage(searchIcon, for: .search, state: .normal)
         
         let searchTextField = search.searchTextField
-        searchTextField.backgroundColor = Color.darkerThanLightButLighterThanDark
+        searchTextField.backgroundColor = Color.white
         searchTextField.textColor = Color.white
         searchTextField.layer.cornerRadius = 16
         searchTextField.layer.masksToBounds = true
